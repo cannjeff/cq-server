@@ -21,6 +21,7 @@ var express = require('express'),
 serverConfig = JSON.parse(fs.readFileSync('./server-config.json', 'utf8'));
 mongoConfig = serverConfig.mongoConfig;
 mongoConnectStr = 'mongodb://' + mongoConfig.host + ':' + mongoConfig.port + '/' + mongoConfig.dbname;
+app.set('env', serverConfig.environment);
 
 // MongoClient.connect(mongoConnectStr, function ( err, db ) {
 // 	if (err) {

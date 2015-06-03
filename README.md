@@ -6,6 +6,7 @@ MongoDB connection settings are now pulled from the server-config.json file. It 
 
 ``` JavaScript
 {
+	"environment": "development",
 	"mongoConfig": {
 		"host": "localhost",
 		"port": 27017,

@@ -1,4 +1,6 @@
-var _ = require('underscore');
+var _ = require('underscore'),
+	mongodb = require('mongodb'),
+	ObjectId = mongodb.ObjectId;
 
 /**
  *	Quips - potentially move to their own file if it grows wildly
@@ -21,6 +23,12 @@ var quips = function ( app ) {
 			});
 		});
 	});
+
+	// app.get('/api/quips/:id/solve', function ( req, res ) {
+	// 	app.mdbConnect(function ( err, db ) {
+			
+	// 	});
+	// });
 
 	/**
 	 *	Creates a new quip and places it in quarantine
