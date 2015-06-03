@@ -26,7 +26,7 @@ var quips = function ( app ) {
 	 *	Creates a new quip and places it in quarantine
 	 **/
 	app.get('/api/quips/create', function ( req, res ) {
-		var expectedParams = [ 'encrypted_text', 'hint', 'date' ],
+		var expectedParams = [ 'encrypted_text', /*'decrypted_text',*/ 'hint', 'date' ], // TODO figure out if we want the user to submit the solution
 			missingParams = [];
 
 		/* Make sure all the expected params exist */
