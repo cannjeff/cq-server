@@ -1,5 +1,6 @@
 var express = require('express'),
 	errorhandler = require('errorhandler'),
+	morgan = require('morgan'),
 	mongodb = require('mongodb'),
 	MongoClient = mongodb.MongoClient,
 	util = require('util'),
@@ -37,10 +38,11 @@ var express = require('express'),
 /**
  *	Make mongoClient accessable
  **/
-app.set('mongoclient', MongoClient);
-app.set('mongoconnectstr', mongoConnectStr);
+// app.set('mongoclient', MongoClient);
+// app.set('mongoconnectstr', mongoConnectStr);
 
 app.set('port', 3000);
+app.use(morgan('dev'));
 // app.use(app.router);
 
 /* Development only */
@@ -48,8 +50,14 @@ if ('development' === app.get('env')) {
 	app.use(errorhandler());
 }
 
+/**
+ *	To make connection to mongoDB easier/shorter in the routes
+ **/
+app.mdbConnect = function ( callback ) {
+	return MongoClient.connect(mongoConnectStr, callback);
+};
+
 require('./routes')(app);
-require('./routes/api')(app);
 
 /**
  *	Startup server
