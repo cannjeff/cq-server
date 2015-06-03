@@ -1,3 +1,5 @@
+var _ = require('underscore');
+
 /**
  *	Quips - potentially move to their own file if it grows wildly
  **/
@@ -10,6 +12,7 @@ var quips = function ( app ) {
 		app.mdbConnect(function ( err, db ) {
 			db.collection('quips').find().toArray(function ( err, results ) {
 				if (err) { throw err; }
+
 				if (results && results.length) {
 					res.setHeader('Content-Type', 'application/json');
 					res.send(JSON.stringify( results ));
@@ -20,11 +23,46 @@ var quips = function ( app ) {
 	});
 
 	/**
+	 *	Creates a new quip and places it in quarantine
+	 **/
+	app.get('/api/quips/create', function ( req, res ) {
+		var expectedParams = [ 'encrypted_text', 'hint', 'date' ],
+			missingParams = [];
+
+		/* Make sure all the expected params exist */
+		_.each( expectedParams, function ( param ) {
+			var hasProp = req.query.hasOwnProperty( param );
+			if (!hasProp) {
+				missingParams.push( param );
+			}
+			return hasProp;
+		});
+
+		if (missingParams.length > 0) {
+			res.status(500).send({ error: 'Missing params ' + JSON.stringify( missingParams ) });
+		} else {
+			app.mdbConnect(function ( err, db ) {
+				if (err) { throw err; }
+
+				/* Minor thing to prevent extra crap, not the best */
+				var obj = {};
+				_.each( expectedParams, function ( p ) {
+					obj[p] = req.query[p];
+				});
+
+				db.collection('quips_quarantine').insert( obj );
+				res.send(JSON.stringify( obj ));
+				db.close();
+			});
+		}
+	});
+
+	/**
 	 *	Quick API reset for the quips collection - obviously not a great thing but meh
 	 **/
 	app.get('/api/quips/resetall', function ( req, res ) {
 		if (app.get('env') !== 'development') { return; }
-		
+
 		var defaultQuips = [
 			{ encrypted_text: "YO U GUWW AWUDESPSP YD FKVFSYESH UVH AKLAKQD, GKQWH CKQ DUC IS'D DEQFFK KV IYLDSWO?", hint: "O => F", date: "06/03/2015" },
 			{ encrypted_text: "JI GRF 'VW VWTYJMH \"SFDABWEWVVG IJMM\" KSJBW RM TCXVTA, GRF CTG EW XTAJMH T XKTJM VJYW.", hint: "V => R", date: "06/02/2015" },
@@ -35,10 +73,13 @@ var quips = function ( app ) {
 		];
 
 		app.mdbConnect(function ( err, db ) {
+			if (err) { throw err; }
+
 			db.collection('quips').remove();
 			db.collection('quips').insert( defaultQuips );
 			db.collection('quips').find().toArray(function ( err, results ) {
 				if (err) { throw err; }
+
 				if (results && results.length) {
 					res.setHeader('Content-Type', 'application/json');
 					res.send(JSON.stringify( results ));

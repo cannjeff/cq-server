@@ -1,5 +1,7 @@
 var express = require('express'),
 	errorhandler = require('errorhandler'),
+	bodyParser = require('body-parser'),
+	multer = require('multer'),
 	morgan = require('morgan'),
 	mongodb = require('mongodb'),
 	MongoClient = mongodb.MongoClient,
@@ -43,7 +45,9 @@ var express = require('express'),
 
 app.set('port', 3000);
 app.use(morgan('dev'));
-// app.use(app.router);
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+app.use(multer()); // for parsing multipart/form-data
 
 /* Development only */
 if ('development' === app.get('env')) {
