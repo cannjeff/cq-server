@@ -9,14 +9,18 @@ var express = require('express'),
 	format = util.format,
 	http = require('http'),
 	path = require('path'),
+	fs = require('fs'),
 	app = express(),
-	mongoConfig = {
-		host: 'localhost',
-		port: '27017',
-		dbname: 'cryptoquip'
-	},
-	mongoConnectStr = 'mongodb://' + mongoConfig.host + ':' + mongoConfig.port + '/' + mongoConfig.dbname;
+	mongoConfig,
+	mongoConnectStr,
+	serverConfig;
 
+/**
+ *	Pull in server configs from an external file (server-config.json)
+ **/
+serverConfig = JSON.parse(fs.readFileSync('./server-config.json', 'utf8'));
+mongoConfig = serverConfig.mongoConfig;
+mongoConnectStr = 'mongodb://' + mongoConfig.host + ':' + mongoConfig.port + '/' + mongoConfig.dbname;
 
 // MongoClient.connect(mongoConnectStr, function ( err, db ) {
 // 	if (err) {
