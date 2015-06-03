@@ -23,6 +23,8 @@ var quips = function ( app ) {
 	 *	Quick API reset for the quips collection - obviously not a great thing but meh
 	 **/
 	app.get('/api/quips/resetall', function ( req, res ) {
+		if (app.get('env') !== 'development') { return; }
+		
 		var defaultQuips = [
 			{ encrypted_text: "YO U GUWW AWUDESPSP YD FKVFSYESH UVH AKLAKQD, GKQWH CKQ DUC IS'D DEQFFK KV IYLDSWO?", hint: "O => F", date: "06/03/2015" },
 			{ encrypted_text: "JI GRF 'VW VWTYJMH \"SFDABWEWVVG IJMM\" KSJBW RM TCXVTA, GRF CTG EW XTAJMH T XKTJM VJYW.", hint: "V => R", date: "06/02/2015" },
