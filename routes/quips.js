@@ -13,7 +13,7 @@ var quips = function ( app ) {
 			db.collection('quips').find().toArray(function ( err, results ) {
 				if (err) { throw err; }
 
-				if (results && results.length) {
+				if (results) {
 					res.setHeader('Content-Type', 'application/json');
 					res.send(JSON.stringify( results ));
 				}
@@ -80,7 +80,7 @@ var quips = function ( app ) {
 			db.collection('quips').find().toArray(function ( err, results ) {
 				if (err) { throw err; }
 
-				if (results && results.length) {
+				if (results) {
 					res.setHeader('Content-Type', 'application/json');
 					res.send(JSON.stringify( results ));
 				}

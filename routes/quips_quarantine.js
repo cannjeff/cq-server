@@ -14,11 +14,9 @@ var quips_quarantine = function ( app ) {
 			db.collection('quips_quarantine').find().toArray(function ( err, results ) {
 				if (err) { throw err; }
 
-				if (results && results.length) {
+				if (results) {
 					res.setHeader('Content-Type', 'application/json');
 					res.send(JSON.stringify( results ));
-				} else {
-					/* determine how i want to handle empty result sets */
 				}
 				db.close();
 			});
