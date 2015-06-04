@@ -128,7 +128,8 @@ function checkSubmittedQuip( quip ) {
 		decryptedText = formatQuipText( quip.decrypted_text ).split(''),
 		map = [];
 
-	if (encryptedText.length !== decryptedText.length) { return false; } /* Quit early if the lengths don't match */
+	if (encryptedText.length === 0 ||
+		encryptedText.length !== decryptedText.length) { return false; } /* Quit early if the lengths don't match */
 
 	decryptedCorrectly = _.all( decryptedText, function ( letter, idx ) {
 		var isMatch = false;
@@ -145,6 +146,7 @@ function checkSubmittedQuip( quip ) {
 };
 
 function formatQuipText( str ) {
+	if (typeof str !== 'string') { return ""; }
 	return str.replace(/\W+/g, '').toUpperCase();
 }
 
