@@ -62,8 +62,10 @@ var quips = function ( app ) {
 			return hasProp;
 		});
 
-		if (missingParams.length > 0) {
+		if (missingParams.length > 0) { /* Check if all params exist */
 			res.status(500).send({ error: 'Missing params ' + JSON.stringify( missingParams ) });
+		} else if (!checkSubmittedQuip( req.query )) { /* Check if provided solution is correct */
+			res.status(500).send({ error: 'The submitted quip is not properly decrypted. Please check your solution and resubmit.' });
 		} else {
 			app.mdbConnect(function ( err, db ) {
 				if (err) { throw err; }
