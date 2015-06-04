@@ -27,12 +27,12 @@ var quips_quarantine = function ( app ) {
 		app.mdbConnect(function ( err, db ) {
 			if (err) { throw err; }
 
-			db.collection('quips_quarantine').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, results ) {
+			db.collection('quips_quarantine').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
 				if (err) { throw err; }
 
-				if (results) {
+				if (doc) {
 					res.setHeader('Content-Type', 'application/json');
-					res.send(JSON.stringify( results ));
+					res.send(JSON.stringify( doc ));
 				}
 				db.close();
 			});

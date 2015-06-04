@@ -24,17 +24,33 @@ var quips = function ( app ) {
 		});
 	});
 
-	// app.get('/api/quips/:id/solve', function ( req, res ) {
-	// 	app.mdbConnect(function ( err, db ) {
-			
-	// 	});
-	// });
+	/**
+	 *	Checks if solution is correct
+	 *
+	 *	Query params:
+	 *		solution - the plain text solution to the cryptoquip
+	 **/
+	app.get('/api/quips/:id/solve', function ( req, res ) {
+		app.mdbConnect(function ( err, db ) {
+			db.collection('quips').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
+				if (err) { throw err; }
+
+				if (doc) {
+					var isSolved = false;
+					if (req.query.solution && doc.decrypted_text) {
+						isSolved = formatQuipText( req.query.solution ) === formatQuipText( doc.decrypted_text );
+					}
+					res.send({ solved: isSolved });
+				}
+			});
+		});
+	});
 
 	/**
 	 *	Creates a new quip and places it in quarantine
 	 **/
 	app.get('/api/quips/create', function ( req, res ) {
-		var expectedParams = [ 'encrypted_text', /*'decrypted_text',*/ 'hint', 'date' ], // TODO figure out if we want the user to submit the solution
+		var expectedParams = [ 'encrypted_text', 'decrypted_text', 'hint', 'date' ],
 			missingParams = [];
 
 		/* Make sure all the expected params exist */
@@ -73,7 +89,7 @@ var quips = function ( app ) {
 
 		var defaultQuips = [
 			{ encrypted_text: "YO U GUWW AWUDESPSP YD FKVFSYESH UVH AKLAKQD, GKQWH CKQ DUC IS'D DEQFFK KV IYLDSWO?", hint: "O => F", date: "06/03/2015" },
-			{ encrypted_text: "JI GRF 'VW VWTYJMH \"SFDABWEWVVG IJMM\" KSJBW RM TCXVTA, GRF CTG EW XTAJMH T XKTJM VJYW.", hint: "V => R", date: "06/02/2015" },
+			{ encrypted_text: "JI GRF 'VW VWTYJMH \"SFDABWEWVVG IJMM\" KSJBW RM TCXVTA, GRF CTG EW XTAJMH T XKTJM VJYW.", decrypted_text: "if you're reading \"Huckleberry Finn\" while on amtrak, you may be taking a twain ride.", hint: "V => R", date: "06/02/2015" },
 			{ encrypted_text: "FNOUI UJ MLURL EJ BJYIGLEJYIY ERZGIXX QIRNFIX LIFFIY UJ NJ EVV XUYIX: \"MEVV EQNBZ IOI.\"", hint: "I => E", date: "06/01/2015" },
 			{ encrypted_text: "TSZC H CZT ZCQWHCVZJ LHXZP H JHCVGL PRJYUUWYCQ, RGNWV MGN RHWW KSHK H MHCXZZ VGGVWZ?", hint: "G => O", date: "05/31/2015" },
 			{ encrypted_text: "QHEV WSAMP, SOHDP PH OV SWWKAVN PH SM HKN TDQPVN YST, QFHDPVN \"NHM'P YHSP EV HM PFSP!\"", hint: "M => N", date: "05/30/2015" },
@@ -98,5 +114,38 @@ var quips = function ( app ) {
 	});
 
 };
+
+/**
+ *	Checks:
+ *		- equal lengths
+ *		- to make sure all occurances of a letter map to the same letter
+ *
+ *	!!! This can and will be beefed up later. !!!
+ **/
+function checkSubmittedQuip( quip ) {
+	var decryptedCorrectly = false,
+		encryptedText = formatQuipText( quip.encrypted_text ).split(''),
+		decryptedText = formatQuipText( quip.decrypted_text ).split(''),
+		map = [];
+
+	if (encryptedText.length !== decryptedText.length) { return false; } /* Quit early if the lengths don't match */
+
+	decryptedCorrectly = _.all( decryptedText, function ( letter, idx ) {
+		var isMatch = false;
+		if (map[ letter ]) {
+			isMatch = map[ letter ] === encryptedText[ idx ];
+		} else {
+			map[ letter ] = encryptedText[ idx ];
+			isMatch = true;
+		}
+		return isMatch;
+	});
+
+	return decryptedCorrectly;
+};
+
+function formatQuipText( str ) {
+	return str.replace(/\W+/g, '').toUpperCase();
+}
 
 module.exports = quips;
