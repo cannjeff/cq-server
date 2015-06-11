@@ -1,9 +1,14 @@
 {
   "name": "CQ-Server",
   "version": "0.0.1",
+  "license": "MIT",
   "private": false,
   "scripts": {
     "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/cannjeff/cq-server.git"
   },
   "dependencies": {
     "body-parser": "^1.12.4",

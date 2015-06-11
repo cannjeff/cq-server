@@ -59,6 +59,12 @@ if ('development' === app.get('env')) {
 	app.use(errorhandler());
 }
 
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
 /**
  *	To make connection to mongoDB easier/shorter in the routes
  **/
