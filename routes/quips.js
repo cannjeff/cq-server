@@ -10,7 +10,7 @@ var quips = function ( app ) {
 	/**
 	 *	Return a list of all (for now) quips
 	 **/
-	app.get('/api/quips', function ( req, res ) {
+	app.get('/v1/quips', function ( req, res ) {
 		app.mdbConnect(function ( err, db ) {
 			db.collection('quips').find().toArray(function ( err, results ) {
 				if (err) { throw err; }
@@ -30,7 +30,7 @@ var quips = function ( app ) {
 	 *	Query params:
 	 *		solution - the plain text solution to the cryptoquip
 	 **/
-	app.get('/api/quips/:id/solve', function ( req, res ) {
+	app.get('/v1/quips/:id/solve', function ( req, res ) {
 		app.mdbConnect(function ( err, db ) {
 			db.collection('quips').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
 				if (err) { throw err; }
@@ -49,7 +49,7 @@ var quips = function ( app ) {
 	/**
 	 *	Creates a new quip and places it in quarantine
 	 **/
-	app.get('/api/quips/create', function ( req, res ) {
+	app.get('/v1/quips/create', function ( req, res ) {
 		var expectedParams = [ 'encrypted_text', 'decrypted_text', 'hint', 'date' ],
 			missingParams = [];
 
@@ -86,7 +86,7 @@ var quips = function ( app ) {
 	/**
 	 *	Quick API reset for the quips collection - obviously not a great thing but meh
 	 **/
-	app.get('/api/quips/resetall', function ( req, res ) {
+	app.get('/v1/quips/resetall', function ( req, res ) {
 		// if (app.get('env') !== 'development') { return; }
 
 		var defaultQuips = [

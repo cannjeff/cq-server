@@ -9,7 +9,7 @@ var quips_quarantine = function ( app ) {
 	/**
 	 *	Return a list of all (for now) quips in quips_quarantine
 	 **/
-	app.get('/api/quips_quarantine', function ( req, res ) {
+	app.get('/v1/quips_quarantine', function ( req, res ) {
 		app.mdbConnect(function ( err, db ) {
 			db.collection('quips_quarantine').find().toArray(function ( err, results ) {
 				if (err) { throw err; }
@@ -23,7 +23,7 @@ var quips_quarantine = function ( app ) {
 		});
 	});
 
-	app.get('/api/quips_quarantine/:id', function ( req, res ) {
+	app.get('/v1/quips_quarantine/:id', function ( req, res ) {
 		app.mdbConnect(function ( err, db ) {
 			if (err) { throw err; }
 
@@ -39,7 +39,7 @@ var quips_quarantine = function ( app ) {
 		});
 	});
 
-	app.get('/api/quips_quarantine/:id/approve', function ( req, res ) {
+	app.get('/v1/quips_quarantine/:id/approve', function ( req, res ) {
 		app.mdbConnect(function ( err, db ) {
 			if (err) { throw err; }
 
