@@ -25,6 +25,22 @@ var quips = function ( app ) {
 	});
 
 	/**
+	 *	Returns a single quip by ID
+	 **/
+	app.get('/v1/quips/:id', function ( req, res ) {
+		app.mdbConnect(function ( err, db ) {
+			db.collection('quips').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
+				if (err) { throw err; }
+
+				if (doc) {
+					res.send(JSON.stringify( doc ));
+				}
+				db.close();
+			});
+		});
+	});
+
+	/**
 	 *	Checks if solution is correct
 	 *
 	 *	Query params:
@@ -42,6 +58,7 @@ var quips = function ( app ) {
 					}
 					res.send({ solved: isSolved });
 				}
+				db.close();
 			});
 		});
 	});
