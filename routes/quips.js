@@ -57,7 +57,7 @@ var quips = function ( app ) {
 						isSolved = formatQuipText( req.query.solution ) === formatQuipText( doc.decrypted_text );
 					}
 					res.send({
-						solved: isSolved
+						solved: isSolved,
 						expected: doc.decrypted_text,
 						received: req.query.solution
 					});
