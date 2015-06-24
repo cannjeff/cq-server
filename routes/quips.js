@@ -25,49 +25,6 @@ var quips = function ( app ) {
 	});
 
 	/**
-	 *	Returns a single quip by ID
-	 **/
-	app.get('/v1/quips/:id', function ( req, res ) {
-		app.mdbConnect(function ( err, db ) {
-			db.collection('quips').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
-				if (err) { throw err; }
-
-				if (doc) {
-					res.send(JSON.stringify( doc ));
-				}
-				db.close();
-			});
-		});
-	});
-
-	/**
-	 *	Checks if solution is correct
-	 *
-	 *	Query params:
-	 *		solution - the plain text solution to the cryptoquip
-	 **/
-	app.get('/v1/quips/:id/solve', function ( req, res ) {
-		app.mdbConnect(function ( err, db ) {
-			db.collection('quips').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
-				if (err) { throw err; }
-
-				if (doc) {
-					var isSolved = false;
-					if (req.query.solution && doc.decrypted_text) {
-						isSolved = formatQuipText( req.query.solution ) === formatQuipText( doc.decrypted_text );
-					}
-					res.send({
-						solved: isSolved,
-						expected: doc.decrypted_text,
-						received: req.query.solution
-					});
-				}
-				db.close();
-			});
-		});
-	});
-
-	/**
 	 *	Creates a new quip and places it in quarantine
 	 **/
 	app.get('/v1/quips/create', function ( req, res ) {
@@ -136,6 +93,49 @@ var quips = function ( app ) {
 				if (results) {
 					res.setHeader('Content-Type', 'application/json');
 					res.send(JSON.stringify( results ));
+				}
+				db.close();
+			});
+		});
+	});
+
+	/**
+	 *	Returns a single quip by ID
+	 **/
+	app.get('/v1/quips/:id', function ( req, res ) {
+		app.mdbConnect(function ( err, db ) {
+			db.collection('quips').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
+				if (err) { throw err; }
+
+				if (doc) {
+					res.send(JSON.stringify( doc ));
+				}
+				db.close();
+			});
+		});
+	});
+
+	/**
+	 *	Checks if solution is correct
+	 *
+	 *	Query params:
+	 *		solution - the plain text solution to the cryptoquip
+	 **/
+	app.get('/v1/quips/:id/solve', function ( req, res ) {
+		app.mdbConnect(function ( err, db ) {
+			db.collection('quips').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
+				if (err) { throw err; }
+
+				if (doc) {
+					var isSolved = false;
+					if (req.query.solution && doc.decrypted_text) {
+						isSolved = formatQuipText( req.query.solution ) === formatQuipText( doc.decrypted_text );
+					}
+					res.send({
+						solved: isSolved,
+						expected: doc.decrypted_text,
+						received: req.query.solution
+					});
 				}
 				db.close();
 			});
