@@ -71,7 +71,8 @@ var quips = function ( app ) {
 	 *	Creates a new quip and places it in quarantine
 	 **/
 	app.get('/v1/quips/create', function ( req, res ) {
-		var expectedParams = [ 'encrypted_text', 'decrypted_text', 'hint', 'date' ],
+		var params = [ 'decrypted_text', 'encrypted_text', 'hint', 'date' ],
+			expectedParams = [ 'decrypted_text', 'hint' ],
 			missingParams = [];
 
 		/* Make sure all the expected params exist */
@@ -85,16 +86,21 @@ var quips = function ( app ) {
 
 		if (missingParams.length > 0) { /* Check if all params exist */
 			res.status(500).send({ error: 'Missing params ' + JSON.stringify( missingParams ) });
-		} else if (!checkSubmittedQuip( req.query )) { /* Check if provided solution is correct */
-			res.status(500).send({ error: 'The submitted quip is not properly decrypted. Please check your solution and resubmit.' });
+		// } else if (!checkSubmittedQuip( req.query )) { /* Check if provided solution is correct */
+			// res.status(500).send({ error: 'The submitted quip is not properly decrypted. Please check your solution and resubmit.' });
 		} else {
 			app.mdbConnect(function ( err, db ) {
 				if (err) { throw err; }
 
 				/* Minor thing to prevent extra crap, not the best */
 				var obj = {};
-				_.each( expectedParams, function ( p ) {
-					obj[p] = req.query[p];
+				_.each( params, function ( p ) {
+					/* Encrypt the text if need be */
+					if (p === 'encrypted_text' && !req.query.hasOwnProperty(p)) {
+						obj[p] = encryptText(req.query.decrypted_text);
+					} else {
+						obj[p] = req.query[p];
+					}
 				});
 
 				db.collection('quips_quarantine').insert( obj );
@@ -171,6 +177,16 @@ function checkSubmittedQuip( quip ) {
 function formatQuipText( str ) {
 	if (typeof str !== 'string') { return ""; }
 	return str.replace(/\W+/g, '').toUpperCase();
+}
+
+function encryptText( str ) {
+	var alphabet = [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' ],
+		shuffledAlphabet = _.shuffle(alphabet),
+		regex = new RegExp(_.keys(alphabet).join('|'), 'g');
+
+	return str.replace(regex, function ( matched ) {
+		return shuffledAlphabet[ alphabet.indexOf( matched ) ];
+	});
 }
 
 module.exports = quips;
