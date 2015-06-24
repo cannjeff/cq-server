@@ -177,16 +177,27 @@ function checkSubmittedQuip( quip ) {
 function formatQuipText( str ) {
 	if (typeof str !== 'string') { return ""; }
 	return str.replace(/\W+/g, '').toUpperCase();
-}
+};
 
 function encryptText( str ) {
 	var alphabet = [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' ],
-		shuffledAlphabet = _.shuffle(alphabet),
-		regex = new RegExp(_.keys(alphabet).join('|'), 'g');
+		shuffledAlphabet = shuffle(alphabet),
+		regex = new RegExp(alphabet.join('|'), 'g');
+
+	str = str.toUpperCase();
+
+	function shuffle( arr ) {
+		var shuffled = _.shuffle( arr );
+		if (_(arr).all(function ( a, i ) { return a !== shuffled[ i ]; })) {
+			return shuffled;
+		} else {
+			return shuffle( arr );
+		}
+	};
 
 	return str.replace(regex, function ( matched ) {
 		return shuffledAlphabet[ alphabet.indexOf( matched ) ];
 	});
-}
+};
 
 module.exports = quips;
