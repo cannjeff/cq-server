@@ -48,7 +48,7 @@ app.set('env', serverConfig.environment);
 // app.set('mongoclient', MongoClient);
 // app.set('mongoconnectstr', mongoConnectStr);
 
-app.set('port', 3000);
+app.set('port', serverConfig.port);
 app.use(morgan('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
