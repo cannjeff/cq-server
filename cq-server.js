@@ -10,7 +10,6 @@ var express = require('express'),
 	util = require('util'),
 	format = util.format,
 	http = require('http'),
-	https = require('https'),
 	path = require('path'),
 	fs = require('fs'),
 	// passport = require('passport'),
@@ -19,8 +18,7 @@ var express = require('express'),
 	app = express(),
 	mongoConfig,
 	mongoConnectStr,
-	serverConfig,
-	options;
+	serverConfig;
 
 /**
  *	Pull in server configs from an external file (server-config.json)
@@ -30,11 +28,6 @@ mongoConfig = serverConfig.mongoConfig;
 mongoConnectStr = 'mongodb://' + mongoConfig.host + ':' + mongoConfig.port + '/' + mongoConfig.dbname;
 app.set('env', serverConfig.environment);
 app.set('tokenSecret', serverConfig.tokenSecret);
-
-options = {
-	key: fs.readFileSync('./conf/key.pem'),
-	cert: fs.readFileSync('./conf/cert.pem')
-};
 
 /**
  *	Mongoose connection
@@ -108,6 +101,4 @@ require('./routes')(app);
 http.createServer( app ).listen(app.get('port'), function () {
 	console.log('Express server listening on port ' + app.get('port'));
 });
-// https.createServer( options, app ).listen(4443, function () {
-// 	console.log('Express server listening on port ' + 4443);
-// });
+
