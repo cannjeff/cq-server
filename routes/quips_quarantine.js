@@ -56,6 +56,22 @@ var quips_quarantine = function ( app ) {
 		});
 	});
 
+	app.get('/v1/quips_quarantine/:id/reject', function ( req, res ) {
+		app.mdbConnect(function ( err, db ) {
+			if (err) { throw err; }
+
+			// db.collection('quips_quarantine').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
+			// 	if (err) { throw err; }
+
+			// 	if (doc) {
+			// 		db.collection('quips_quarantine').remove( doc );
+			// 		res.send(JSON.stringify( doc ));
+			// 	}
+			// 	db.close();
+			// });
+		});
+	});
+
 };
 
 module.exports = quips_quarantine;

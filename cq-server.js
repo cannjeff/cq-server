@@ -1,19 +1,26 @@
 var express = require('express'),
 	errorhandler = require('errorhandler'),
 	bodyParser = require('body-parser'),
+	session = require('express-session'),
 	multer = require('multer'),
 	morgan = require('morgan'),
 	mongodb = require('mongodb'),
+	mongoose = require('mongoose'),
 	MongoClient = mongodb.MongoClient,
 	util = require('util'),
 	format = util.format,
 	http = require('http'),
+	https = require('https'),
 	path = require('path'),
 	fs = require('fs'),
+	// passport = require('passport'),
+	// TwitterStrategy = require('passport-twitter').Strategy,
+	User = require('./models/user'),
 	app = express(),
 	mongoConfig,
 	mongoConnectStr,
-	serverConfig;
+	serverConfig,
+	options;
 
 /**
  *	Pull in server configs from an external file (server-config.json)
@@ -22,31 +29,48 @@ serverConfig = JSON.parse(fs.readFileSync('./server-config.json', 'utf8'));
 mongoConfig = serverConfig.mongoConfig;
 mongoConnectStr = 'mongodb://' + mongoConfig.host + ':' + mongoConfig.port + '/' + mongoConfig.dbname;
 app.set('env', serverConfig.environment);
+app.set('tokenSecret', serverConfig.tokenSecret);
 
-// MongoClient.connect(mongoConnectStr, function ( err, db ) {
-// 	if (err) {
-// 		throw err;
-// 	}
-// 	var collection = db.collection('test_insert');
-// 	collection.insert({a:2}, function (err, docs) {
-// 		collection.count(function(err, count) {
-// 			console.log(format("count = %s", count));
-// 		});
-
-// 		// Locate all the entries using find
-// 		collection.find().toArray(function(err, results) {
-// 			console.dir(results);
-// 			// Let's close the db
-// 			db.close();
-// 		});
-// 	});
-// });
+options = {
+	key: fs.readFileSync('./conf/key.pem'),
+	cert: fs.readFileSync('./conf/cert.pem')
+};
 
 /**
- *	Make mongoClient accessable
+ *	Mongoose connection
  **/
-// app.set('mongoclient', MongoClient);
-// app.set('mongoconnectstr', mongoConnectStr);
+mongoose.connect( mongoConnectStr );
+
+/**
+ *	Passport - handling auth via Twitter
+ **/
+// passport.use(new TwitterStrategy({
+// 	consumerKey: serverConfig.twitterConsumerKey,
+// 	consumerSecret: serverConfig.twitterConsumerSecret,
+// 	callbackURL: serverConfig.twitterCallbackURL
+// }, function ( token, tokenSecret, profile, done ) {
+// 	User.findOrCreate({ twitterId: profile.id }, function ( err, user ) {
+// 		return done(err, user);
+// 	});
+// }));
+
+
+/**
+ *	Sessions - https://github.com/expressjs/session
+ *
+ *	NEED UPGRADE - https://github.com/expressjs/session#compatible-session-stores
+ **/
+// app.use(session({
+// 	secret: 'apple snake tree',
+// 	resave: false,
+// 	saveUninitialized: true
+// }));
+
+/**
+ *	Initialize Passport!  Also use passport.session() middleware, to support persistent login sessions (recommended).
+ **/
+// app.use(passport.initialize());
+// app.use(passport.session());
 
 app.set('port', serverConfig.port);
 app.use(morgan('dev'));
@@ -59,9 +83,12 @@ if ('development' === app.get('env')) {
 	app.use(errorhandler());
 }
 
-app.use(function(req, res, next) {
+/**
+ *	Allow cross origin
+ **/
+app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, x-access-token");
   next();
 });
 
@@ -69,7 +96,8 @@ app.use(function(req, res, next) {
  *	To make connection to mongoDB easier/shorter in the routes
  **/
 app.mdbConnect = function ( callback ) {
-	return MongoClient.connect(mongoConnectStr, callback);
+	throw new Error("Deprecated!");
+	// return MongoClient.connect(mongoConnectStr, callback);
 };
 
 require('./routes')(app);
@@ -77,6 +105,9 @@ require('./routes')(app);
 /**
  *	Startup server
  **/
-http.createServer(app).listen(app.get('port'), function(){
+http.createServer( app ).listen(app.get('port'), function () {
 	console.log('Express server listening on port ' + app.get('port'));
 });
+// https.createServer( options, app ).listen(4443, function () {
+// 	console.log('Express server listening on port ' + 4443);
+// });

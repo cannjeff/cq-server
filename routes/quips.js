@@ -1,6 +1,8 @@
 var _ = require('underscore'),
 	mongodb = require('mongodb'),
-	ObjectId = mongodb.ObjectId;
+	// passport = require('passport'),
+	Quip = require('../models/quip'),
+	auth = require('../middleware/authenticate');
 
 /**
  *	Quips - potentially move to their own file if it grows wildly
@@ -10,61 +12,50 @@ var quips = function ( app ) {
 	/**
 	 *	Return a list of all (for now) quips
 	 **/
-	app.get('/v1/quips', function ( req, res ) {
-		app.mdbConnect(function ( err, db ) {
-			db.collection('quips').find().toArray(function ( err, results ) {
-				if (err) { throw err; }
+	app.get('/v1/quips', auth.authenticate, function ( req, res ) {
+		var query = {$or: [
+			{ quarantine: false },
+			{ quarantine: undefined }
+		]};
 
-				if (results) {
-					res.setHeader('Content-Type', 'application/json');
-					res.send(JSON.stringify( results ));
-				}
-				db.close();
-			});
+		/* To pull quarantined quips */
+		if (req.query.quarantine == 1) {
+			query = { quarantine: true };
+		}
+		Quip.find( query ).exec(function ( err, quips ) {
+			if (err) { res.send( err ); }
+
+			res.json( quips );
 		});
 	});
 
 	/**
 	 *	Creates a new quip and places it in quarantine
 	 **/
-	app.get('/v1/quips/create', function ( req, res ) {
-		var params = [ 'decrypted_text', 'encrypted_text', 'hint', 'date' ],
-			expectedParams = [ 'decrypted_text', 'hint' ],
-			missingParams = [];
+	app.post('/v1/quips/create', auth.authenticate, function ( req, res ) {
+		var quip = new Quip(),
+			encryptedObj;
 
-		/* Make sure all the expected params exist */
-		_.each( expectedParams, function ( param ) {
-			var hasProp = req.query.hasOwnProperty( param );
-			if (!hasProp) {
-				missingParams.push( param );
-			}
-			return hasProp;
-		});
+		quip.decrypted_text = req.body.decrypted_text;
+		if (!req.body.encrypted_text) {
+			encryptedObj = 			encryptText( req.body.decrypted_text );
 
-		if (missingParams.length > 0) { /* Check if all params exist */
-			res.status(500).send({ error: 'Missing params ' + JSON.stringify( missingParams ) });
-		// } else if (!checkSubmittedQuip( req.query )) { /* Check if provided solution is correct */
-			// res.status(500).send({ error: 'The submitted quip is not properly decrypted. Please check your solution and resubmit.' });
+			quip.encrypted_text = 	encryptedObj.encrypted_text;
+			quip.hint_key = 		encryptedObj.hint_key;
+			quip.hint_value = 		encryptedObj.hint_value;
 		} else {
-			app.mdbConnect(function ( err, db ) {
-				if (err) { throw err; }
-
-				/* Minor thing to prevent extra crap, not the best */
-				var obj = {};
-				_.each( params, function ( p ) {
-					/* Encrypt the text if need be */
-					if (p === 'encrypted_text' && !req.query.hasOwnProperty(p)) {
-						obj[p] = encryptText(req.query.decrypted_text);
-					} else {
-						obj[p] = req.query[p];
-					}
-				});
-
-				db.collection('quips_quarantine').insert( obj );
-				res.send(JSON.stringify( obj ));
-				db.close();
-			});
+			quip.encrypted_text = 	req.body.encrypted_text;
+			quip.hint_key = 		req.body.hint_key;
+			quip.hint_value = 		req.body.hint_value;
 		}
+		quip.created_date = new Date();
+		quip.quarantine = true;
+
+		quip.save(function ( err ) {
+			if (err) { throw err; }
+
+			res.json( quip );
+		});
 	});
 
 	/**
@@ -73,45 +64,40 @@ var quips = function ( app ) {
 	app.get('/v1/quips/resetall', function ( req, res ) {
 		// if (app.get('env') !== 'development') { return; }
 
-		var defaultQuips = [
-			{ encrypted_text: "YO U GUWW AWUDESPSP YD FKVFSYESH UVH AKLAKQD, GKQWH CKQ DUC IS'D DEQFFK KV IYLDSWO?", hint: "O => F", date: "06/03/2015" },
-			{ encrypted_text: "JI GRF'VW VWTYJMH \"SFDABWEWVVG IJMM\" KSJBW RM TCXVTA, GRF CTG EW XTAJMH T XKTJM VJYW.", decrypted_text: "if you're reading \"Huckleberry Finn\" while on amtrak, you may be taking a twain ride.", hint: "V => R", date: "06/02/2015" },
-			{ encrypted_text: "FNOUI UJ MLURL EJ BJYIGLEJYIY ERZGIXX QIRNFIX LIFFIY UJ NJ EVV XUYIX: \"MEVV EQNBZ IOI.\"", hint: "I => E", date: "06/01/2015" },
-			{ encrypted_text: "TSZC H CZT ZCQWHCVZJ LHXZP H JHCVGL PRJYUUWYCQ, RGNWV MGN RHWW KSHK H MHCXZZ VGGVWZ?", hint: "G => O", date: "05/31/2015" },
-			{ encrypted_text: "QHEV WSAMP, SOHDP PH OV SWWKAVN PH SM HKN TDQPVN YST, QFHDPVN \"NHM'P YHSP EV HM PFSP!\"", hint: "M => N", date: "05/30/2015" },
-			{ encrypted_text: "XU H KPO XN BVHZZO XDAL SHASGXDK JLBHON HDY SLDKVBN, SLPZY OLP SHZZ GXJ HD VVZXDK UHD?", hint: "Z => L", date: "05/29/2015" }
-		];
+		// var defaultQuips = [
+		// 	{ encrypted_text: "YO U GUWW AWUDESPSP YD FKVFSYESH UVH AKLAKQD, GKQWH CKQ DUC IS'D DEQFFK KV IYLDSWO?", hint: "O => F", date: "06/03/2015" },
+		// 	{ encrypted_text: "JI GRF'VW VWTYJMH \"SFDABWEWVVG IJMM\" KSJBW RM TCXVTA, GRF CTG EW XTAJMH T XKTJM VJYW.", decrypted_text: "if you're reading \"Huckleberry Finn\" while on amtrak, you may be taking a twain ride.", hint: "V => R", date: "06/02/2015" },
+		// 	{ encrypted_text: "FNOUI UJ MLURL EJ BJYIGLEJYIY ERZGIXX QIRNFIX LIFFIY UJ NJ EVV XUYIX: \"MEVV EQNBZ IOI.\"", hint: "I => E", date: "06/01/2015" },
+		// 	{ encrypted_text: "TSZC H CZT ZCQWHCVZJ LHXZP H JHCVGL PRJYUUWYCQ, RGNWV MGN RHWW KSHK H MHCXZZ VGGVWZ?", hint: "G => O", date: "05/31/2015" },
+		// 	{ encrypted_text: "QHEV WSAMP, SOHDP PH OV SWWKAVN PH SM HKN TDQPVN YST, QFHDPVN \"NHM'P YHSP EV HM PFSP!\"", hint: "M => N", date: "05/30/2015" },
+		// 	{ encrypted_text: "XU H KPO XN BVHZZO XDAL SHASGXDK JLBHON HDY SLDKVBN, SLPZY OLP SHZZ GXJ HD VVZXDK UHD?", hint: "Z => L", date: "05/29/2015" }
+		// ];
 
-		app.mdbConnect(function ( err, db ) {
-			if (err) { throw err; }
+		// app.mdbConnect(function ( err, db ) {
+		// 	if (err) { throw err; }
 
-			db.collection('quips').remove();
-			db.collection('quips').insert( defaultQuips );
-			db.collection('quips').find().toArray(function ( err, results ) {
-				if (err) { throw err; }
+		// 	db.collection('quips').remove();
+		// 	db.collection('quips').insert( defaultQuips );
+		// 	db.collection('quips').find().toArray(function ( err, results ) {
+		// 		if (err) { throw err; }
 
-				if (results) {
-					res.setHeader('Content-Type', 'application/json');
-					res.send(JSON.stringify( results ));
-				}
-				db.close();
-			});
-		});
+		// 		if (results) {
+		// 			res.setHeader('Content-Type', 'application/json');
+		// 			res.send(JSON.stringify( results ));
+		// 		}
+		// 		db.close();
+		// 	});
+		// });
 	});
 
 	/**
 	 *	Returns a single quip by ID
 	 **/
 	app.get('/v1/quips/:id', function ( req, res ) {
-		app.mdbConnect(function ( err, db ) {
-			db.collection('quips').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
-				if (err) { throw err; }
+		Quip.findById(req.params.id, function ( err, quip ) {
+			if (err) { res.send( err ); }
 
-				if (doc) {
-					res.send(JSON.stringify( doc ));
-				}
-				db.close();
-			});
+			res.json( quip );
 		});
 	});
 
@@ -122,23 +108,50 @@ var quips = function ( app ) {
 	 *		solution - the plain text solution to the cryptoquip
 	 **/
 	app.get('/v1/quips/:id/solve', function ( req, res ) {
-		app.mdbConnect(function ( err, db ) {
-			db.collection('quips').findOne({ "_id": new ObjectId( req.params.id ) }, function ( err, doc ) {
-				if (err) { throw err; }
+		Quip.findById(req.params.id, function ( err, quip ) {
+			if (err) { throw err; }
 
-				if (doc) {
-					var isSolved = false;
-					if (req.query.solution && doc.decrypted_text) {
-						isSolved = formatQuipText( req.query.solution ) === formatQuipText( doc.decrypted_text );
-					}
-					res.send({
-						solved: isSolved,
-						expected: doc.decrypted_text,
-						received: req.query.solution
-					});
+			if (quip) {
+				var isSolved = false;
+				if (req.query.solution && quip.decrypted_text) {
+					isSolved = formatQuipText( req.query.solution ) === formatQuipText( quip.decrypted_text );
 				}
-				db.close();
-			});
+				res.json({
+					solved: isSolved,
+					expected: quip.decrypted_text,
+					received: req.query.solution
+				});
+			}
+		});
+	});
+
+	/**
+	 *	Approve quarantined quip
+	 **/
+	app.get('/v1/quips/:id/approve', function ( req, res ) {
+		Quip.findById(req.params.id, function ( err, quip ) {
+			if (err) { throw err; }
+
+			if (quip.quarantine == 1) {
+				quip.quarantine = 0;
+
+				quip.save(function ( err ) {
+					if (err) { throw err; }
+
+					res.json(quip);
+				});
+			}
+		});
+	});
+
+	/**
+	 *	Reject quarantined quip
+	 **/
+	app.get('/v1/quips/:id/reject', function ( req, res ) {
+		Quip.findByIdAndRemove(req.params.id, function ( err, quip ) {
+			if (err) { throw err; }
+
+			res.json( quip );
 		});
 	});
 
@@ -182,7 +195,11 @@ function formatQuipText( str ) {
 function encryptText( str ) {
 	var alphabet = [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' ],
 		shuffledAlphabet = shuffle(alphabet),
-		regex = new RegExp(alphabet.join('|'), 'g');
+		regex = new RegExp(alphabet.join('|'), 'g'),
+		encryptedText,
+		hintObj,
+		hintKey,
+		hintValue;
 
 	str = str.toUpperCase();
 
@@ -195,9 +212,35 @@ function encryptText( str ) {
 		}
 	};
 
-	return str.replace(regex, function ( matched ) {
+	function findHint( dStr, eStr ) {
+		var idx = Math.floor(Math.random() * dStr.length),
+			letter = dStr[ idx ];
+
+		if (regex.test( letter )) {
+			return {
+				hint_key: eStr[ idx ],
+				hint_value: dStr[ idx ]
+			};
+		} else {
+			return findHint( dStr, eStr );
+		}
+	};
+
+	/* Encrypt the string */
+	encryptedText = str.replace(regex, function ( matched ) {
 		return shuffledAlphabet[ alphabet.indexOf( matched ) ];
 	});
+
+	/* Generate the hint, make sure it's actually used */
+	hintObj = findHint( str, encryptedText );
+	hintKey = hintObj.hint_key;
+	hintValue = hintObj.hint_value;
+
+	return {
+		encrypted_text: encryptedText,
+		hint_key: hintKey,
+		hint_value: hintValue
+	};
 };
 
 module.exports = quips;
