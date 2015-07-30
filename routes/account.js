@@ -50,23 +50,38 @@ var account = function ( app ) {
 	});
 
 	app.post('/v1/account/create', function ( req, res ) {
-		var user = new User({
-			username: req.body.username,
-			password: req.body.password
-		});
-
-		user.save(function ( error ) {
+		User.findOne({
+			username: req.body.username
+		}, function ( error, user ) {
 			if (error) {
-				throw error;
+				console.log(error);
 			}
 
-			/* Normally the password is removed from the 'select' query */
-			user.password = undefined;
+			if (user) {
+				res.json({
+					success: false,
+					message: 'Username not available'
+				});
+			} else {
+				var _user = new User({
+					username: req.body.username,
+					password: req.body.password
+				});
 
-			res.json({
-				success: true,
-				user: user
-			});
+				_user.save(function ( error ) {
+					if (error) {
+						throw error;
+					}
+
+					/* Normally the password is removed from the 'select' query */
+					_user.password = undefined;
+
+					res.json({
+						success: true,
+						user: _user
+					});
+				});
+			}
 		});
 	});
 
