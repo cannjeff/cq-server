@@ -22,7 +22,11 @@ var quips = function ( app ) {
 		if (req.query.quarantine == 1) {
 			query = { quarantine: true };
 		}
-		Quip.find( query ).exec(function ( err, quips ) {
+		Quip
+			.find( query )
+			.limit(50)
+			.sort({ created_date: -1 })
+			.exec(function ( err, quips ) {
 			if (err) { res.send( err ); }
 
 			res.json( quips );
@@ -36,6 +40,9 @@ var quips = function ( app ) {
 		var quip = new Quip(),
 			encryptedObj;
 
+		/* Pull the user ID from the decoded object on the request */
+		quip.created_by = req.decoded.user._id;
+
 		quip.decrypted_text = req.body.decrypted_text;
 		if (!req.body.encrypted_text) {
 			encryptedObj = 			encryptText( req.body.decrypted_text );
@@ -48,7 +55,9 @@ var quips = function ( app ) {
 			quip.hint_key = 		req.body.hint_key;
 			quip.hint_value = 		req.body.hint_value;
 		}
-		quip.created_date = new Date();
+
+		/* Directly to quarantine */
+		////TODO - add direct to live for (G)GUJ and maybe other admins/curators
 		quip.quarantine = true;
 
 		quip.save(function ( err ) {

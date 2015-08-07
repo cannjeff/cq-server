@@ -27,12 +27,16 @@ module.exports = {
 		}
 	},
 	authenticateAdmin: function ( req, res, next ) {
-		if (req.decoded && req.decoded.username) {
+		if (req.decoded && req.decoded.user && req.decoded.user.username) {
+			/* A bit overkill, but its a quick query */
 			User.findOne({
-				username: req.decoded.username
+				username: req.decoded.user.username
 			}, function ( error, user ) {
 				if (error) {
-					throw error;
+					return res.json({
+						success: false,
+						message: 'User does not have admin privileges'
+					});
 				}
 				if (user.admin) {
 					next();
