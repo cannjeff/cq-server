@@ -15,4 +15,4 @@ npm install
 echo "Starting server..."
 forever start cq-server.js
 
-echo "Done..."
+echo "Done!"
