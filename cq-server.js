@@ -12,8 +12,6 @@ var express = require('express'),
 	http = require('http'),
 	path = require('path'),
 	fs = require('fs'),
-	// passport = require('passport'),
-	// TwitterStrategy = require('passport-twitter').Strategy,
 	User = require('./models/user'),
 	app = express(),
 	mongoConfig,
@@ -33,7 +31,7 @@ app.set('tokenSecret', serverConfig.tokenSecret);
  *	Mongoose connection
  **/
 mongoose.connect( mongoConnectStr );
-
+// mongoose.set('debug', true);
 /**
  *	Passport - handling auth via Twitter
  **/

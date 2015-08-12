@@ -14,16 +14,7 @@ var quips = function ( app ) {
 	 *	Return a list of all (for now) quips
 	 **/
 	app.get('/v1/quips', auth.authenticate, function ( req, res ) {
-		var query = {$and: [
-			{$or: [
-				{ archived: false },
-				{ archived: undefined }
-			]},
-			{$or: [
-				{ quarantine: false },
-				{ quarantine: undefined }
-			]}
-		]};
+		var query = { archived: false, quarantine: false };
 
 		/* To pull quarantined quips */
 		if (req.query.quarantine == 1) {
