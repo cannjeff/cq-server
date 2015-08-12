@@ -2,6 +2,7 @@ var _ = require('underscore'),
 	mongodb = require('mongodb'),
 	// passport = require('passport'),
 	Quip = require('../models/quip'),
+	UserQuipSolution = require('../models/userQuipSolution'),
 	auth = require('../middleware/authenticate');
 
 /**
@@ -13,24 +14,47 @@ var quips = function ( app ) {
 	 *	Return a list of all (for now) quips
 	 **/
 	app.get('/v1/quips', auth.authenticate, function ( req, res ) {
-		var query = {$or: [
-			{ quarantine: false },
-			{ quarantine: undefined }
+		var query = {$and: [
+			{$or: [
+				{ archived: false },
+				{ archived: undefined }
+			]},
+			{$or: [
+				{ quarantine: false },
+				{ quarantine: undefined }
+			]}
 		]};
 
 		/* To pull quarantined quips */
 		if (req.query.quarantine == 1) {
-			query = { quarantine: true };
+			query = {$and: [
+				{ quarantine: true },
+				{$or: [
+					{ archived: false },
+					{ archived: undefined }
+				]}
+			]};
 		}
 		Quip
 			.find( query )
 			.limit(50)
 			.sort({ created_date: -1 })
 			.exec(function ( err, quips ) {
-			if (err) { res.send( err ); }
+				if (err) { res.send( err ); }
 
-			res.json( quips );
-		});
+				// _(quips).each(function ( quip ) {
+				// 	UserQuipSolution
+				// 		.find({
+				// 			user_id: req.decoded.user._id,
+				// 			quip_id: quip._id
+				// 		})
+				// 		.exec(function ( err, uqSolution ) {
+
+				// 		});
+				// });
+
+				res.json( quips );
+			});
 	});
 
 	/**
@@ -111,27 +135,151 @@ var quips = function ( app ) {
 	});
 
 	/**
+	 *	Updates the quip and hint values
+	 **/
+	app.post('/v1/quips/:id/update', auth.authenticate, auth.authenticateCurator, function ( req, res ) {
+		Quip.findById(req.params.id, function ( error, quip ) {
+			if (error) {
+				console.log(error);
+			}
+
+			if (quip) {
+				quip.encrypted_text = req.body.encrypted_text;
+				quip.hint_key 		= req.body.hint_key;
+				quip.hint_value 	= req.body.hint_value;
+				quip.save(function ( error ) {
+					if (error) {
+						console.log(error);
+					}
+
+					res.json({
+						success: true,
+						data: quip
+					});
+				});
+			} else {
+				res.json({
+					success: false,
+					message: 'No quip found matching the provided ID.'
+				});
+			}
+		});
+	});
+
+	/**
+	 *	Archives quip - never actually delete it
+	 **/
+	app.get('/v1/quips/:id/archive', auth.authenticate, auth.authenticateCurator, function ( req, res ) {
+		Quip.findById(req.params.id, function ( error, quip ) {
+			if (error) {
+				console.log(error);
+			}
+
+			if (quip) {
+				quip.archived = true;
+				quip.save(function ( error ) {
+					if (error) {
+						console.log(error);
+					}
+
+					res.json({
+						success: true,
+						data: quip
+					});
+				});
+			} else {
+				res.json({
+					success: false,
+					message: 'No quip found matching the provided ID.'
+				});
+			}
+		});
+	});
+
+	/**
+	 *	Unarchives quip
+	 **/
+	app.get('/v1/quips/:id/unarchive', auth.authenticate, auth.authenticateCurator, function ( req, res ) {
+		Quip.findById(req.params.id, function ( error, quip ) {
+			if (error) {
+				console.log(error);
+			}
+
+			if (quip) {
+				quip.archived = false;
+				quip.save(function ( error ) {
+					if (error) {
+						console.log(error);
+					}
+
+					res.json({
+						success: true,
+						data: quip
+					});
+				});
+			} else {
+				res.json({
+					success: false,
+					message: 'No quip found matching the provided ID.'
+				});
+			}
+		});
+	});
+
+	/**
 	 *	Checks if solution is correct
 	 *
 	 *	Query params:
 	 *		solution - the plain text solution to the cryptoquip
+	 *		keyObject - the keyObject used on the frontend, used to persist state?
 	 **/
-	app.get('/v1/quips/:id/solve', function ( req, res ) {
-		Quip.findById(req.params.id, function ( err, quip ) {
-			if (err) { throw err; }
+	app.get('/v1/quips/:id/solve', auth.authenticate, function ( req, res ) {
+		var userId = req.decoded.user._id,
+			quipId = req.params.id,
+			query = {
+				user_id: userId,
+				quip_id: quipId
+			};
 
-			if (quip) {
-				var isSolved = false;
-				if (req.query.solution && quip.decrypted_text) {
-					isSolved = formatQuipText( req.query.solution ) === formatQuipText( quip.decrypted_text );
+		UserQuipSolution
+			.findOne( query )
+			.exec(function ( error, uqSolution ) {
+				if (error) {
+					console.log(error);
 				}
-				res.json({
-					solved: isSolved,
-					expected: quip.decrypted_text,
-					received: req.query.solution
-				});
-			}
-		});
+
+				if (uqSolution) {
+					uqSolution.key_object 	= req.query.keyObject;
+					uqSolution.solved 		= false; ////TODO implement this
+					uqSolution.save(function ( err ) {
+						if (err) {
+							console.log(err);
+						}
+
+						res.json({
+							success: true,
+							data: uqSolution
+						});
+					});
+				} else {
+					/* Create the uqSolution */
+					var uqSolution 			= new UserQuipSolution();
+					uqSolution.user_id 		= userId;
+					uqSolution.quip_id 		= quipId;
+					uqSolution.key_object 	= req.query.keyObject;
+					uqSolution.solved 		= false; ////TODO implement this
+					uqSolution.save(function ( err ) {
+						if (err) {
+							console.log(err);
+						}
+
+						res.json({
+							success: true,
+							data: uqSolution
+						});
+					});
+				}
+			});
 	});
 
 	/**
@@ -199,6 +347,10 @@ function checkSubmittedQuip( quip ) {
 function formatQuipText( str ) {
 	if (typeof str !== 'string') { return ""; }
 	return str.replace(/\W+/g, '').toUpperCase();
+};
+
+function isSolved( guess, actual ) {
+	return formatQuipText( guess ) === formatQuipText( actual );
 };
 
 function encryptText( str ) {

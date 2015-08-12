@@ -26,27 +26,56 @@ module.exports = {
 			});
 		}
 	},
-	authenticateAdmin: function ( req, res, next ) {
+	authenticateCurator: function ( req, res, next ) {
+		function missingPrivileges() {
+			res.json({
+				success: false,
+				message: 'User does not have curator privileges'
+			});
+		}
 		if (req.decoded && req.decoded.user && req.decoded.user.username) {
 			/* A bit overkill, but its a quick query */
 			User.findOne({
 				username: req.decoded.user.username
 			}, function ( error, user ) {
 				if (error) {
-					return res.json({
-						success: false,
-						message: 'User does not have admin privileges'
-					});
+					missingPrivileges();
+					return;
 				}
-				if (user.admin) {
+				if (user.curator) {
 					next();
+				} else {
+					missingPrivileges();
 				}
 			});
 		} else {
+			missingPrivileges();
+		}
+	},
+	authenticateAdmin: function ( req, res, next ) {
+		function missingPrivileges() {
 			res.json({
 				success: false,
 				message: 'User does not have admin privileges'
 			});
+		}
+		if (req.decoded && req.decoded.user && req.decoded.user.username) {
+			/* A bit overkill, but its a quick query */
+			User.findOne({
+				username: req.decoded.user.username
+			}, function ( error, user ) {
+				if (error) {
+					missingPrivileges();
+					return;
+				}
+				if (user.admin) {
+					next();
+				} else {
+					missingPrivileges();
+				}
+			});
+		} else {
+			missingPrivileges();
 		}
 	}
 };

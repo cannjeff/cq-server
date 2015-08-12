@@ -173,6 +173,8 @@ var account = function ( app ) {
 			if (err) throw err;
 
 			user.admin = true;
+			/* Also set curator */
+			user.curator = true;
 
 			user.save(function ( err ) {
 				if (err) { throw err; }
