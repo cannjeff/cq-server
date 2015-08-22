@@ -16,12 +16,17 @@
     "errorhandler": "~1.4.2",
     "express": "~4.13.3",
     "express-session": "~1.11.3",
+    "http-status": "~0.2.0",
     "jsonwebtoken": "~5.0.4",
+    "moment": "~2.10.6",
     "mongodb": "~2.0.40",
     "mongoose": "~4.1.2",
+    "mongoose-unique-validator": "~0.4.1",
     "mongoose-validator": "~1.2.3",
     "morgan": "~1.6.1",
-    "multer": "^0.1.8",
+    "multer": "~0.1.8",
+    "nodemailer": "~1.4.0",
+    "nodemailer-ses-transport": "~1.3.0",
     "underscore": "~1.8.3"
   },
   "devDependencies": {}

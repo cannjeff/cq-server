@@ -31,7 +31,7 @@ app.set('tokenSecret', serverConfig.tokenSecret);
  *	Mongoose connection
  **/
 mongoose.connect( mongoConnectStr );
-// mongoose.set('debug', true);
+mongoose.set('debug', app.get('env') === 'development');
 /**
  *	Passport - handling auth via Twitter
  **/

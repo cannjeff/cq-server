@@ -2,8 +2,8 @@ var mongoose = require('mongoose'),
 	UserQuipSolutionSchema;
 
 UserQuipSolutionSchema = new mongoose.Schema({
-	user_id: { type: mongoose.Schema.Types.ObjectId, required: true },
-	quip_id: { type: mongoose.Schema.Types.ObjectId, required: true },
+	user_id: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
+	quip_id: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Quip' },
 	key_object: mongoose.Schema.Types.Mixed,
 	solved: { type: Boolean, default: false },
 	created_date: { type: Date, default: Date.now },

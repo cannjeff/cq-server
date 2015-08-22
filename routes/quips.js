@@ -1,4 +1,5 @@
 var _ = require('underscore'),
+	moment = require('moment'),
 	mongodb = require('mongodb'),
 	// passport = require('passport'),
 	Quip = require('../models/quip'),
@@ -18,20 +19,28 @@ var quips = function ( app ) {
 
 		/* To pull quarantined quips */
 		if (req.query.quarantine == 1) {
-			query = {$and: [
-				{ quarantine: true },
-				{$or: [
-					{ archived: false },
-					{ archived: undefined }
-				]}
-			]};
+			query = { archived: false, quarantine: true };
 		}
 		Quip
 			.find( query )
 			.limit(50)
 			.sort({ created_date: -1 })
+			.populate('created_by')
 			.exec(function ( err, quips ) {
 				if (err) { res.send( err ); }
+
+				/* Remove quips featured in the future */
+				quips = _(quips).filter(function ( quip ) {
+					var notFeaturedInFuture = true;
+
+					if (quip.featured_date) {
+						if (moment().isBefore(quip.featured_date)) {
+							notFeaturedInFuture = false;
+						}
+					}
+
+					return notFeaturedInFuture;
+				});
 
 				// _(quips).each(function ( quip ) {
 				// 	UserQuipSolution
@@ -44,7 +53,10 @@ var quips = function ( app ) {
 				// 		});
 				// });
 
-				res.json( quips );
+				res.json({
+					success: true,
+					data: quips
+				});
 			});
 	});
 
@@ -57,6 +69,11 @@ var quips = function ( app ) {
 
 		/* Pull the user ID from the decoded object on the request */
 		quip.created_by = req.decoded.user._id;
+
+		/* Set the featured date if one is provided */
+		if (req.body.featured_date) {
+			quip.featured_date = req.body.featured_date;
+		}
 
 		quip.decrypted_text = req.body.decrypted_text;
 		if (!req.body.encrypted_text) {
@@ -78,7 +95,10 @@ var quips = function ( app ) {
 		quip.save(function ( err ) {
 			if (err) { throw err; }
 
-			res.json( quip );
+			res.json({
+				success: true,
+				data: quip
+			});
 		});
 	});
 
@@ -121,7 +141,10 @@ var quips = function ( app ) {
 		Quip.findById(req.params.id, function ( err, quip ) {
 			if (err) { res.send( err ); }
 
-			res.json( quip );
+			res.json({
+				success: true,
+				data: quip
+			});
 		});
 	});
 

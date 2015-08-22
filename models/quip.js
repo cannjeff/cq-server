@@ -8,8 +8,9 @@ QuipSchema = new mongoose.Schema({
 	hint_value: { type: String, required: true },
 	quarantine: Boolean,
 	archived: { type: Boolean, default: false },
-	created_by: mongoose.Schema.Types.ObjectId,
-	created_date: { type: Date, default: Date.now }
+	created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+	created_date: { type: Date, default: Date.now },
+	featured_date: { type: Date }
 });
 
 QuipSchema.pre('save', function ( next ) {

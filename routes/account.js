@@ -1,5 +1,6 @@
 var User = require('../models/user'),
 	jwt = require('jsonwebtoken'),
+	_ = require('underscore'),
 	auth = require('../middleware/authenticate');
 
 var account = function ( app ) {
@@ -16,6 +17,11 @@ var account = function ( app ) {
 				res.json({
 					success: false,
 					message: 'Authentication failed. Username not found.'
+				});
+			} else if (!user.verified) {
+				res.json({
+					success: false,
+					message: 'Authentication failed. Email not verified.'
 				});
 			} else if (user) {
 				user.comparePassword(req.body.password, function ( error, isMatch ) {
@@ -50,50 +56,123 @@ var account = function ( app ) {
 		});
 	});
 
-	app.post('/v1/account/create', function ( req, res ) {
+	app.get('/v1/account/verify/:token', function ( req, res ) {
 		User.findOne({
-			username: req.body.username
+			verificationToken: req.params.token
 		}, function ( error, user ) {
 			if (error) {
 				console.log(error);
-			}
-
-			if (user) {
-				res.json({
+				return res.json({
 					success: false,
-					message: 'Username not available'
+					message: 'Email verification failed.'
 				});
-			} else {
-				var _user = new User({
-					username: req.body.username,
-					password: req.body.password
-				});
-
-				_user.save(function ( error ) {
+			} else if (user) {
+				user.verifyEmail(function ( error ) {
 					if (error) {
-						var errMsg;
-						if (error.errors && error.errors.password && error.errors.password.message) {
-							errMsg = error.errors.password.message;
-						} else {
-							errMsg = 'Password was not validated';
-						}
-
-						console.log(errMsg, error);
-
-						res.json({
+						return res.json({
 							success: false,
-							message: errMsg
+							message: error
 						});
-						return;
 					}
-
-					/* Normally the password is removed from the 'select' query */
-					_user.password = undefined;
 
 					res.json({
 						success: true,
-						user: _user
+						data: user
 					});
+				});
+			} else {
+				res.json({
+					success: false,
+					message: 'Not a valid token.'
+				});
+			}
+		});
+	});
+
+	app.post('/v1/account/resendVerification', function ( req, res ) {
+		User.findOne({
+			email: req.body.email
+		}, function ( error, user ) {
+			if (error) {
+				console.log(error);
+				return res.json({
+					success: false,
+					message: 'An unknown error occurred while resending the verification email'
+				});
+			} else if (user) {
+				if (user.verified) {
+					return res.json({
+						success: false,
+						message: 'Account already verified.'
+					});
+				}
+
+				user.generateToken();
+				user.save(function ( error ) {
+					if (error) {
+						console.log(error);
+						return res.json({
+							success: false,
+							message: 'An unknown error occurred while resending the verification email'
+						});
+					}
+
+					user.sendVerificationEmail();
+
+					res.json({
+						success: true
+					});
+				});
+			} else {
+				console.log('Email not found while trying to resend verification email');
+				return res.json({
+					success: false,
+					message: 'An unknown error occurred while resending the verification email'
+				});
+			}
+		});
+	});
+
+	app.post('/v1/account/create', function ( req, res ) {
+		var user = new User({
+			username: 			req.body.username,
+			email:  			req.body.email,
+			password: 			req.body.password
+		});
+
+		/* Token gets generated and set (not saved) on the object */
+		user.generateToken();
+
+		user.save(function ( error ) {
+			if (error) {
+				if (error.errors) {
+					/* Error Handling */
+					var errors = error.errors,
+						errorMessage = 'An unknown error occurred when creating your account.';
+
+					if (errors.username) {
+						/* 1. Username taken */
+						errorMessage = 'Error: Username not available.'
+					} else if (errors.password) {
+						/* 2. Password not valid */
+						errorMessage = errors.password.message
+					} else if (errors.email) {
+						/* 3. Email not unique */
+						errorMessage = 'Error: An account is aready registered to this email.'
+					}
+					return res.json({
+							success: false,
+							message: errorMessage
+						});
+				}
+			} else {
+				/* Normally the password is removed from the 'select' query */
+				user.password = undefined;
+
+				user.sendVerificationEmail();
+
+				res.json({
+					success: true
 				});
 			}
 		});
