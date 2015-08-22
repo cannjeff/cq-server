@@ -7,6 +7,8 @@ var mongoose = require('mongoose'),
 	nodemailer = require('nodemailer'),
 	sesTransport = require('nodemailer-ses-transport'),
 	_ = require('underscore'),
+	fs = require('fs'),
+	clientOrigin = JSON.parse(fs.readFileSync('./server-config.json', 'utf8')).clientOrigin,
 	smtpTransport,
 	mailOptions,
 	SALT_WORK_FACTOR = 10,
@@ -131,7 +133,7 @@ UserSchema.methods.generateToken = function () {
 UserSchema.methods.sendVerificationEmail = function () {
 	var opts = _.extend({}, mailOptions);
 	opts.to = this.email;
-	var href = 'https://cryptoquip.io/#/verifyEmail/' + this.verificationToken;
+	var href = clientOrigin + '/#/verifyEmail/' + this.verificationToken;
 	opts.html = [
 			'<h3>Please verify your email address</h3>',
 			'<p>Hey ' + this.username + '!</p>',
