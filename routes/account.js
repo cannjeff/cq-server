@@ -1,7 +1,8 @@
 var User = require('../models/user'),
 	jwt = require('jsonwebtoken'),
 	_ = require('underscore'),
-	auth = require('../middleware/authenticate');
+	auth = require('../middleware/authenticate'),
+	HTTPStatus = require('http-status')
 
 var account = function ( app ) {
 
@@ -14,12 +15,12 @@ var account = function ( app ) {
 			}
 
 			if (!user) {
-				res.json({
+				res.status(HTTPStatus.UNAUTHORIZED).json({
 					success: false,
 					message: 'Authentication failed. Username not found.'
 				});
 			} else if (!user.verified) {
-				res.json({
+				res.status(HTTPStatus.UNAUTHORIZED).json({
 					success: false,
 					message: 'Authentication failed. Email not verified.'
 				});
@@ -46,7 +47,7 @@ var account = function ( app ) {
 							user: user
 						});
 					} else {
-						res.json({
+						res.status(HTTPStatus.UNAUTHORIZED).json({
 							success: false,
 							message: 'Authentication failed. Incorrect password'
 						});
@@ -139,6 +140,8 @@ var account = function ( app ) {
 			email:  			req.body.email,
 			password: 			req.body.password
 		});
+
+		console.log('request', req.body);
 
 		/* Token gets generated and set (not saved) on the object */
 		user.generateToken();
